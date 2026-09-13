@@ -1,0 +1,4 @@
+flask
+bitcoin-utils
+python-dotenv
+jsonrpc-requests
