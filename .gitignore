@@ -1,0 +1,10 @@
+# Ignore file
+.env
+.env.example
+/venv
+*.log
+*/__pycache__
+*.md
+!README.md
+*.tmp
+.agents
