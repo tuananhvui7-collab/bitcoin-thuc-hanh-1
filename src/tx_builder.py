@@ -2,7 +2,8 @@ import os
 from bitcoinutils.setup import setup
 from bitcoinutils.keys import PrivateKey, P2shAddress
 from bitcoinutils.proxy import NodeProxy
-from bitcoinutils.transactions import Transaction, TxInput, TxOutput
+from bitcoinutils.transactions import Transaction, TxInput, TxOutput, TxWitnessInput
+from bitcoinutils.script import Script
 from bitcoinutils.utils import to_satoshis
 
 # Cấu hình kết nối RPC
@@ -60,6 +61,32 @@ def select_utxos(utxos: list, target_amount: Decimal) -> tuple[list, Decimal]:
             
     raise ValueError(f"Alice không đủ tiền! Cần {target_amount} BTC nhưng chỉ có {total_gathered} BTC.")
 
+def estimate_tx_fee(address_type: str, num_inputs: int, num_outputs: int, fee_rate_sat_per_byte: int = 10) -> Decimal:
+    """
+    Ước lượng Phí Thợ đào động (Dynamic Fee) dựa trên loại địa chỉ và số lượng UTXO.
+    - Legacy input: ~148 bytes
+    - Segwit input: ~68 bytes (vbytes)
+    - Taproot input: ~57.5 bytes (vbytes)
+    - Output mặc định: ~34 bytes
+    """
+    if address_type == "legacy":
+        input_size = 148
+    elif address_type in ["nested_segwit", "native_segwit"]:
+        input_size = 68
+    elif address_type == "taproot":
+        input_size = 57.5
+    else:
+        input_size = 148 # Fallback
+        
+    output_size = 34
+    base_tx_size = 10
+    
+    estimated_size = base_tx_size + (input_size * num_inputs) + (output_size * num_outputs)
+    
+    # Tính tổng phí bằng Satoshi, sau đó chia cho 100,000,000 để ra BTC
+    total_fee_satoshi = estimated_size * fee_rate_sat_per_byte
+    return Decimal(str(total_fee_satoshi / 100_000_000))
+
 def sign_transaction_inputs(
     tx: Transaction, 
     priv_key: PrivateKey, 
@@ -89,20 +116,33 @@ def sign_transaction_inputs(
     utxo_scripts = [script_pubkey] * len(selected_utxos)
     utxo_amounts = [to_satoshis(utxo["amount"]) for utxo in selected_utxos]
 
-    # 3. Ký điện tử cho từng tờ tiền (Input)
+    # 3. Ký điện tử cho từng tờ tiền (Input) 5 UTXO thì kí cả 5
     for index, utxo in enumerate(selected_utxos):
         
         if address_type == "legacy":
             # Thuật toán ECDSA cơ bản
-            priv_key.sign_input(tx, index, script_pubkey)
+            sig = priv_key.sign_input(tx, index, script_pubkey)
+            tx.inputs[index].script_sig = Script([sig, pub.to_hex()])
             
-        elif address_type in ["nested_segwit", "native_segwit"]:
-            # Thuật toán ECDSA kiểu Segwit (bắt buộc truyền thêm amount)
-            priv_key.sign_segwit_input(tx, index, script_pubkey, to_satoshis(utxo["amount"]))
+        elif address_type == "nested_segwit":
+            # Với Segwit, script code để băm luôn là P2PKH
+            p2pkh_script = pub.get_address().to_script_pub_key()
+            sig = priv_key.sign_segwit_input(tx, index, p2pkh_script, to_satoshis(utxo["amount"]))
+            
+            # Gắn chữ ký vào Witness Stack và Redeem script vào ScriptSig
+            tx.inputs[index].script_sig = Script([pub.get_segwit_address().to_script_pub_key().to_hex()])
+            tx.witnesses.append(TxWitnessInput([sig, pub.to_hex()]))
+            
+        elif address_type == "native_segwit":
+            # Với Segwit, script code để băm luôn là P2PKH
+            p2pkh_script = pub.get_address().to_script_pub_key()
+            sig = priv_key.sign_segwit_input(tx, index, p2pkh_script, to_satoshis(utxo["amount"]))
+            tx.witnesses.append(TxWitnessInput([sig, pub.to_hex()]))
             
         elif address_type == "taproot":
             # Thuật toán Schnorr tối tân (bắt buộc truyền mảng Script và mảng Amount của TOÀN BỘ inputs)
-            priv_key.sign_taproot_input(tx, index, utxo_scripts, utxo_amounts)
+            sig = priv_key.sign_taproot_input(tx, index, utxo_scripts, utxo_amounts)
+            tx.witnesses.append(TxWitnessInput([sig]))
             
     return tx
 
