@@ -1,0 +1,67 @@
+# Kế hoạch Đóng gói Project lên GitHub (Bước 10)
+
+Thật tuyệt vời khi bạn có tư duy chia sẻ và triển khai (Deploy) sản phẩm sang máy khác! Đây chính xác là **Bước 10** trong đồ án của chúng ta: **Đóng gói toàn bộ project bằng Docker**.
+
+Tin vui là hệ thống mã nguồn của chúng ta (gồm `docker-compose.yml`, `src/Dockerfile` và cấu trúc lấy biến môi trường trong file Python) **đã được viết chuẩn chỉ ngay từ đầu**. Khi đưa sang máy khác, họ không cần cài Bitcoin Core, cũng không cần cài Python. Họ chỉ cần duy nhất ứng dụng Docker.
+
+Để sẵn sàng đẩy lên GitHub một cách chuyên nghiệp, chúng ta chỉ cần tạo thêm 3 file chuẩn mực nữa:
+
+## Proposed Changes
+
+### 1. File loại trừ Git (Chống lộ dữ liệu nhạy cảm)
+Khi đưa lên GitHub, ta tuyệt đối KHÔNG được push thư mục môi trường ảo `venv` (vì rất nặng và gây lỗi chéo hệ điều hành), và thư mục `.agents`/`.gemini` (cấu hình cá nhân).
+#### [NEW] [.gitignore](file:///c:/Users/Tuana/Downloads/bitcoin-thuc-hanh-1/.gitignore)
+```text
+# Môi trường ảo Python
+venv/
+__pycache__/
+*.pyc
+
+# Biến môi trường và cấu hình mật
+.env
+
+# Thư mục trợ lý AI cá nhân
+.agents/
+.gemini/
+```
+
+### 2. File mẫu Biến môi trường
+Ta không đưa file `.env` lên mạng để giấu mật khẩu, nên ta phải cấp một file `.env.example` để người clone về tự đổi tên và điền vào.
+#### [NEW] [.env.example](file:///c:/Users/Tuana/Downloads/bitcoin-thuc-hanh-1/.env.example)
+```env
+# Đổi tên file này thành .env trước khi chạy
+RPC_USER=dev
+RPC_PASSWORD=devpass
+```
+
+### 3. Tài liệu hướng dẫn sử dụng
+Cần một file README để người khác (hoặc chính bạn sau này) biết cách chạy một phát ăn luôn.
+#### [NEW] [README.md](file:///c:/Users/Tuana/Downloads/bitcoin-thuc-hanh-1/README.md)
+```markdown
+# Bitcoin Regtest Lab (Python + Docker)
+
+Dự án thực hành kết nối với Bitcoin Node (mạng regtest) qua Python.
+Toàn bộ node và script được đóng gói sẵn trong Docker. Bạn không cần cài Bitcoin hay Python trực tiếp lên máy.
+
+## Cách cài đặt và chạy trên máy tính mới
+
+**1. Clone code và chuẩn bị biến môi trường:**
+`cp .env.example .env`
+
+**2. Khởi động toàn bộ hệ thống bằng 1 lệnh duy nhất:**
+`docker compose up --build -d`
+Lệnh này sẽ tải image Bitcoin Core 28.0, dựng mạng Regtest, và dựng sẵn môi trường Python.
+
+**3. Vào môi trường Python để chạy code:**
+`docker exec -it btc-lab-app /bin/bash`
+Bây giờ bạn đã ở trong container. Bạn có thể chạy các bài thực hành:
+`python tx_builder.py`
+
+## Làm sạch dữ liệu (Reset Blockchain)
+Nếu muốn phá đi làm lại từ đầu (xóa sạch các khối đã đào):
+`docker compose down -v`
+```
+
+## Verification Plan
+- Nếu bạn đồng ý, tôi sẽ tạo 3 file này.
+- Khi đó, thư mục của bạn đã **hoàn hảo 100% chuẩn công nghiệp** để dùng lệnh `git push` đẩy lên GitHub! Mọi máy tính khác tải về chỉ cần gõ `docker compose up` là chạy được y hệt máy bạn!
