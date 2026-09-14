@@ -2,6 +2,8 @@ import os
 from bitcoinutils.setup import setup
 from bitcoinutils.keys import PrivateKey, P2shAddress
 from bitcoinutils.proxy import NodeProxy
+from bitcoinutils.transactions import Transaction, TxInput, TxOutput
+from bitcoinutils.utils import to_satoshis
 
 # Cấu hình kết nối RPC
 RPC_HOST = os.environ.get("RPC_HOST", "127.0.0.1")
@@ -58,6 +60,52 @@ def select_utxos(utxos: list, target_amount: Decimal) -> tuple[list, Decimal]:
             
     raise ValueError(f"Alice không đủ tiền! Cần {target_amount} BTC nhưng chỉ có {total_gathered} BTC.")
 
+def sign_transaction_inputs(
+    tx: Transaction, 
+    priv_key: PrivateKey, 
+    selected_utxos: list,
+    address_type: str
+) -> Transaction:
+    """
+    Ký điện tử cho toàn bộ Input trong Giao dịch, tách biệt 4 loại địa chỉ.
+    """
+    #Sinh khóa public.
+    pub = priv_key.get_public_key()
+    
+    # 1. Tái tạo Script của ví để dùng cho việc ký (Thay vì parse hex từ node)
+    if address_type == "legacy":
+        script_pubkey = pub.get_address().to_script_pub_key()
+    elif address_type == "nested_segwit":
+        # Với Nested SegWit, ta ký trên Redeem Script (chính là Native Segwit Script)
+        script_pubkey = pub.get_segwit_address().to_script_pub_key()
+    elif address_type == "native_segwit":
+        script_pubkey = pub.get_segwit_address().to_script_pub_key()
+    elif address_type == "taproot":
+        script_pubkey = pub.get_taproot_address().to_script_pub_key()
+    else:
+        raise ValueError(f"Không hỗ trợ ký cho loại địa chỉ: {address_type}")
+
+    # 2. Chuẩn bị mảng Scripts và Amounts cho riêng thuật toán Schnorr (Taproot)
+    utxo_scripts = [script_pubkey] * len(selected_utxos)
+    utxo_amounts = [to_satoshis(utxo["amount"]) for utxo in selected_utxos]
+
+    # 3. Ký điện tử cho từng tờ tiền (Input)
+    for index, utxo in enumerate(selected_utxos):
+        
+        if address_type == "legacy":
+            # Thuật toán ECDSA cơ bản
+            priv_key.sign_input(tx, index, script_pubkey)
+            
+        elif address_type in ["nested_segwit", "native_segwit"]:
+            # Thuật toán ECDSA kiểu Segwit (bắt buộc truyền thêm amount)
+            priv_key.sign_segwit_input(tx, index, script_pubkey, to_satoshis(utxo["amount"]))
+            
+        elif address_type == "taproot":
+            # Thuật toán Schnorr tối tân (bắt buộc truyền mảng Script và mảng Amount của TOÀN BỘ inputs)
+            priv_key.sign_taproot_input(tx, index, utxo_scripts, utxo_amounts)
+            
+    return tx
+
 if __name__ == "__main__":
     # 1. Tác nhân Alice (Người gửi - Đang giàu)
     ALICE_WIF = "cSmKSQgPLqn9jSt89KjbhTiBpT7qK4jWrdQnmgMzHPuhZvVbp82V"
@@ -84,12 +132,15 @@ if __name__ == "__main__":
     
     print(f"\n=== MÔ PHỎNG COIN SELECTION ===")
     print(f"Alice đang cố gắng nhặt ra {target} BTC từ ví Taproot...")
-    selected_utxos, total_gathered = select_utxos(alice_utxos, target)
-    
-    print(f"-> Đã bốc được {len(selected_utxos)} tờ tiền (UTXO).")
-    print(f"-> Tổng giá trị xấp tiền bốc được: {total_gathered} BTC.")
-    
-    # 6. Tính toán tiền thừa (Change Output)
-    change_amount = total_gathered - target
-    print(f"-> Tiền thừa Alice sẽ nhận lại (Change): {change_amount} BTC.")
-
+    try:
+        selected_utxos, total_gathered = select_utxos(alice_utxos, target)
+        
+        print(f"-> Đã bốc được {len(selected_utxos)} tờ tiền (UTXO).")
+        print(f"-> Tổng giá trị xấp tiền bốc được: {total_gathered} BTC.")
+        
+        # 6. Tính toán tiền thừa (Change Output)
+        change_amount = total_gathered - target
+        print(f"-> Tiền thừa thối lại Alice: {change_amount} BTC")
+        
+    except ValueError as e:
+        print(e)
