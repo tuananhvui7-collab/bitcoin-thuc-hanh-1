@@ -1,0 +1,57 @@
+# Tài Liệu Đặc Tả Yêu Cầu (SRS) - Giao Diện Web Bitcoin
+
+## 1. Bối cảnh và Mục tiêu (Context & Goal)
+Chúng ta đã hoàn thành xuất sắc Backend Mật mã học (Bước 1 -> Bước 8). Tuy nhiên, người dùng cuối không thể lúc nào cũng gõ Terminal.
+**Mục tiêu (Bước 9):** Xây dựng một Giao diện Web (Web App) trực quan, lộng lẫy để hiển thị dòng tiền luân chuyển giữa **Alice, Bob và Thợ Đào (Miner)** một cách chân thực nhất.
+
+## 2. Yêu cầu Chức năng (Functional Requirements)
+
+### 2.1. Cụm Bảng Điều Khiển (Dashboard Số Dư)
+- **Ví Alice:** Hiển thị số dư hiện tại (Quét UTXO và cộng dồn toàn bộ 4 loại địa chỉ).
+- **Ví Bob:** Hiển thị số dư hiện tại (Chờ nhận tiền).
+- **Ví Thợ Đào (Miner):** Hiển thị số dư "Immature" (Tiền thưởng Block + Phí giao dịch vớt được).
+> [!IMPORTANT]
+> Cần viết thêm API trong `app.py` để tự động quét và tính tổng số dư của 3 tác nhân này mỗi khi tải lại trang hoặc có giao dịch mới.
+
+### 2.2. Cụm Form Chuyển Tiền
+Người dùng (Đóng vai Alice) cần nhập:
+- **Loại địa chỉ gửi:** Dropdown chọn 1 trong 4 loại (Legacy, Nested Segwit, Native Segwit, Taproot).
+- **Số tiền cần gửi:** Nhập số (BTC).
+- **Phí thợ đào:** Một thanh trượt (Slider) để người dùng tự do gán phí, hoặc một checkbox "Tính phí Động tự động".
+- **Nút "KÝ VÀ PHÁT SÓNG":** Kích hoạt luồng chạy Backend.
+
+### 2.3. Cụm Trình chiếu Live (Live Console)
+Sau khi bấm gửi, một màn hình Console giả lập (nằm ngay trên Web) sẽ in ra từng dòng trạng thái:
+1. "Đang nhặt UTXO..."
+2. "Đang đóng gói và Ký giao dịch (Tạo file Hex)..."
+3. "Đang ném lên mạng (Broadcast)..."
+4. "Thợ đào đang đóng Block..."
+5. Cập nhật Số dư trực tiếp trên màn hình mà không cần F5.
+
+## 3. Yêu cầu Phi Chức Năng (Aesthetics & UI/UX)
+Tuân thủ nghiêm ngặt tiêu chuẩn `web_application_development`:
+- **Công nghệ:** Flask (Backend) + HTML/JS cơ bản + **Vanilla CSS** (KHÔNG dùng Tailwind).
+- **Thẩm mỹ (Wow-factor):**
+  - Giao diện **Dark Mode** bóng bẩy, kết hợp màu gradient Cam/Vàng đặc trưng của Bitcoin.
+  - Sử dụng **Glassmorphism** (Hiệu ứng kính mờ trong suốt) cho các Form nhập liệu.
+  - Chuyển động **Micro-animations** mượt mà (Hiệu ứng khi hover nút, khi tiền được chuyển).
+- Không dùng thư viện Node.js hay React/Vue phức tạp để giữ cho project dễ mang đi thi (Chỉ 1 lệnh là chạy).
+
+## 4. Các tệp cần tạo (Proposed Changes)
+
+### [NEW] [src/app.py](file:///c:/Users/Tuana/Downloads/bitcoin-thuc-hanh-1/src/app.py)
+File Flask Server. Sẽ import hàm từ `tests/test_signer.py` và `src/tx_builder.py` để làm cầu nối (API) giữa Backend và Web.
+
+### [NEW] [src/templates/index.html](file:///c:/Users/Tuana/Downloads/bitcoin-thuc-hanh-1/src/templates/index.html)
+Trang chủ duy nhất (Single Page Application). Bố cục 3 cột (Dashboard, Form, Console).
+
+### [NEW] [src/static/css/style.css](file:///c:/Users/Tuana/Downloads/bitcoin-thuc-hanh-1/src/static/css/style.css)
+File định dạng giao diện "Premium".
+
+### [NEW] [src/static/js/main.js](file:///c:/Users/Tuana/Downloads/bitcoin-thuc-hanh-1/src/static/js/main.js)
+File Javascript đảm nhiệm việc gửi AJAX request lên Flask và tạo hiệu ứng Animation cho Live Console.
+
+---
+## User Review Required
+Bạn hãy nghiên cứu kỹ bản **Đặc Tả (SRS)** này. Đặc biệt chú ý mục **2.1 (Số dư 3 tác nhân)** và **3 (Thẩm mỹ)** xem đã đúng với mong đợi của bạn chưa. 
+Nếu cần bổ sung thêm tính năng gì (ví dụ: in mã QR Code), hãy cho tôi biết. Nếu đã hoàn hảo, hãy bấm **Proceed**!

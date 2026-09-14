@@ -146,41 +146,64 @@ def sign_transaction_inputs(
             
     return tx
 
-if __name__ == "__main__":
-    # 1. Tác nhân Alice (Người gửi - Đang giàu)
-    ALICE_WIF = "cSmKSQgPLqn9jSt89KjbhTiBpT7qK4jWrdQnmgMzHPuhZvVbp82V"
-    alice_addresses = derive_all_address_types(ALICE_WIF)
+def build_and_sign_tx(
+    sender_wif: str,
+    receiver_pub_script: Script,
+    target_amount: Decimal,
+    addr_type: str,
+    fee_rate: int = 10
+) -> tuple[Transaction, Decimal, list]:
+    """
+    API cốt lõi cho Web App: Xây dựng và Ký giao dịch từ A-Z.
+    Trả về: (Giao dịch đã ký, Tiền phí thực tế, Danh sách UTXO đã dùng)
+    """
+    sender_priv = PrivateKey(sender_wif)
+    sender_pub = sender_priv.get_public_key()
     
-    # 2. Tác nhân Bob (Người nhận - Đang nghèo)
-    BOB_WIF = "cUi51ejxfidY9JMwFg8orA1zFFhHCwyGtsKcb42gaTPRScGrVNGJ"
-    bob_addresses = derive_all_address_types(BOB_WIF)
+    # 1. Lấy địa chỉ người gửi để tìm UTXO
+    sender_addresses = derive_all_address_types(sender_wif)
+    sender_addr_string = sender_addresses[addr_type]
     
-    # 3. Kịch bản: Alice lấy tiền từ ví Taproot để gửi cho Bob (Native Segwit)
-    print("=== THÔNG TIN VÍ ===")
-    alice_balance = get_utxos_by_address(alice_addresses["taproot"]).get("total_amount", 0)
-    bob_balance = get_utxos_by_address(bob_addresses["native_segwit"]).get("total_amount", 0)
+    utxos_data = get_utxos_by_address(sender_addr_string)
+    utxos_list = utxos_data.get('unspents', [])
     
-    print(f"Ví Taproot của Alice: {alice_addresses['taproot']} (Số dư: {alice_balance} BTC)")
-    print(f"Ví Native Segwit của Bob: {bob_addresses['native_segwit']} (Số dư: {bob_balance} BTC)")
-    
-    # 4. Gom tiền từ ví Taproot của Alice
-    utxo_data = get_utxos_by_address(alice_addresses["taproot"])
-    alice_utxos = utxo_data.get("unspents", [])
-    
-    # 5. Alice muốn trả 90 BTC cho Bob + 0.001 BTC cho Thợ đào
-    target = Decimal("90.001") 
-    
-    print(f"\n=== MÔ PHỎNG COIN SELECTION ===")
-    print(f"Alice đang cố gắng nhặt ra {target} BTC từ ví Taproot...")
-    try:
-        selected_utxos, total_gathered = select_utxos(alice_utxos, target)
+    if not utxos_list:
+        raise ValueError(f"Không có UTXO ở ví {addr_type}.")
         
-        print(f"-> Đã bốc được {len(selected_utxos)} tờ tiền (UTXO).")
-        print(f"-> Tổng giá trị xấp tiền bốc được: {total_gathered} BTC.")
+    # 2. Bốc nháp để đoán phí
+    selected_utxos_draft, _ = select_utxos(utxos_list, target_amount)
+    dynamic_fee = estimate_tx_fee(addr_type, len(selected_utxos_draft), 2, fee_rate)
+    
+    # 3. Bốc thật (Gồm cả tiền gửi + phí)
+    selected_utxos, total = select_utxos(utxos_list, target_amount + dynamic_fee)
+    change = total - target_amount - dynamic_fee
+    
+    # 4. Tạo Inputs
+    tx_inputs = [TxInput(u["txid"], u["vout"]) for u in selected_utxos]
+    
+    # 5. Tạo Outputs (Bao gồm Output gửi đi và Output nhận tiền thừa)
+    if addr_type == "legacy":
+        sender_script = sender_pub.get_address().to_script_pub_key()
+        is_segwit = False
+    elif addr_type == "nested_segwit":
+        sender_script = P2shAddress.from_script(sender_pub.get_segwit_address().to_script_pub_key()).to_script_pub_key()
+        is_segwit = True
+    elif addr_type == "native_segwit":
+        sender_script = sender_pub.get_segwit_address().to_script_pub_key()
+        is_segwit = True
+    elif addr_type == "taproot":
+        sender_script = sender_pub.get_taproot_address().to_script_pub_key()
+        is_segwit = True
         
-        # 6. Tính toán tiền thừa (Change Output)
-        change_amount = total_gathered - target
-        print(f"-> Tiền thừa thối lại Alice: {change_amount} BTC")
-        
-    except ValueError as e:
-        print(e)
+    tx_outputs = [
+        TxOutput(to_satoshis(target_amount), receiver_pub_script),
+        TxOutput(to_satoshis(change), sender_script)
+    ]
+    
+    # 6. Khung Giao Dịch
+    tx = Transaction(tx_inputs, tx_outputs, has_segwit=is_segwit)
+    
+    # 7. Ký Giao Dịch
+    signed_tx = sign_transaction_inputs(tx, sender_priv, selected_utxos, addr_type)
+    
+    return signed_tx, dynamic_fee, selected_utxos
