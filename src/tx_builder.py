@@ -90,58 +90,55 @@ def estimate_tx_fee(address_type: str, num_inputs: int, num_outputs: int, fee_ra
 def sign_transaction_inputs(
     tx: Transaction, 
     priv_key: PrivateKey, 
-    selected_utxos: list,
-    address_type: str
+    selected_utxos: list
 ) -> Transaction:
     """
-    Ký điện tử cho toàn bộ Input trong Giao dịch, tách biệt 4 loại địa chỉ.
+    Ký điện tử cho toàn bộ Input (Hỗ trợ Mix UTXO).
     """
-    #Sinh khóa public.
     pub = priv_key.get_public_key()
     
-    # 1. Tái tạo Script của ví để dùng cho việc ký (Thay vì parse hex từ node)
-    if address_type == "legacy":
-        script_pubkey = pub.get_address().to_script_pub_key()
-    elif address_type == "nested_segwit":
-        # Với Nested SegWit, ta ký trên Redeem Script (chính là Native Segwit Script)
-        script_pubkey = pub.get_segwit_address().to_script_pub_key()
-    elif address_type == "native_segwit":
-        script_pubkey = pub.get_segwit_address().to_script_pub_key()
-    elif address_type == "taproot":
-        script_pubkey = pub.get_taproot_address().to_script_pub_key()
-    else:
-        raise ValueError(f"Không hỗ trợ ký cho loại địa chỉ: {address_type}")
+    # 1. Chuẩn bị mảng Scripts và Amounts cho riêng thuật toán Schnorr (Taproot)
+    # Schnorr yêu cầu phải có danh sách script_pubkey và amount của TẤT CẢ các input.
+    all_scripts = []
+    all_amounts = []
+    
+    for utxo in selected_utxos:
+        a_type = utxo["addr_type"]
+        if a_type == "legacy":
+            spk = pub.get_address().to_script_pub_key()
+        elif a_type in ["nested_segwit", "native_segwit"]:
+            spk = pub.get_segwit_address().to_script_pub_key()
+        elif a_type == "taproot":
+            spk = pub.get_taproot_address().to_script_pub_key()
+        else:
+            raise ValueError(f"Không hỗ trợ: {a_type}")
+            
+        all_scripts.append(spk)
+        all_amounts.append(to_satoshis(utxo["amount"]))
 
-    # 2. Chuẩn bị mảng Scripts và Amounts cho riêng thuật toán Schnorr (Taproot)
-    utxo_scripts = [script_pubkey] * len(selected_utxos)
-    utxo_amounts = [to_satoshis(utxo["amount"]) for utxo in selected_utxos]
-
-    # 3. Ký điện tử cho từng tờ tiền (Input) 5 UTXO thì kí cả 5
+    # 2. Ký điện tử cho từng tờ tiền (Input)
     for index, utxo in enumerate(selected_utxos):
+        a_type = utxo["addr_type"]
         
-        if address_type == "legacy":
-            # Thuật toán ECDSA cơ bản
+        if a_type == "legacy":
+            script_pubkey = pub.get_address().to_script_pub_key()
             sig = priv_key.sign_input(tx, index, script_pubkey)
             tx.inputs[index].script_sig = Script([sig, pub.to_hex()])
             
-        elif address_type == "nested_segwit":
-            # Với Segwit, script code để băm luôn là P2PKH
+        elif a_type == "nested_segwit":
             p2pkh_script = pub.get_address().to_script_pub_key()
             sig = priv_key.sign_segwit_input(tx, index, p2pkh_script, to_satoshis(utxo["amount"]))
-            
-            # Gắn chữ ký vào Witness Stack và Redeem script vào ScriptSig
             tx.inputs[index].script_sig = Script([pub.get_segwit_address().to_script_pub_key().to_hex()])
             tx.witnesses.append(TxWitnessInput([sig, pub.to_hex()]))
             
-        elif address_type == "native_segwit":
-            # Với Segwit, script code để băm luôn là P2PKH
+        elif a_type == "native_segwit":
             p2pkh_script = pub.get_address().to_script_pub_key()
             sig = priv_key.sign_segwit_input(tx, index, p2pkh_script, to_satoshis(utxo["amount"]))
             tx.witnesses.append(TxWitnessInput([sig, pub.to_hex()]))
             
-        elif address_type == "taproot":
-            # Thuật toán Schnorr tối tân (bắt buộc truyền mảng Script và mảng Amount của TOÀN BỘ inputs)
-            sig = priv_key.sign_taproot_input(tx, index, utxo_scripts, utxo_amounts)
+        elif a_type == "taproot":
+            # Bắt buộc truyền mảng Script và mảng Amount của TOÀN BỘ inputs
+            sig = priv_key.sign_taproot_input(tx, index, all_scripts, all_amounts)
             tx.witnesses.append(TxWitnessInput([sig]))
             
     return tx
@@ -150,60 +147,54 @@ def build_and_sign_tx(
     sender_wif: str,
     receiver_pub_script: Script,
     target_amount: Decimal,
-    addr_type: str,
     fee_rate: int = 10
 ) -> tuple[Transaction, Decimal, list]:
     """
-    API cốt lõi cho Web App: Xây dựng và Ký giao dịch từ A-Z.
-    Trả về: (Giao dịch đã ký, Tiền phí thực tế, Danh sách UTXO đã dùng)
+    API cốt lõi cho Web App: Xây dựng và Ký giao dịch từ A-Z. Hỗ trợ Mix UTXO.
     """
     sender_priv = PrivateKey(sender_wif)
     sender_pub = sender_priv.get_public_key()
     
-    # 1. Lấy địa chỉ người gửi để tìm UTXO
+    # 1. Lấy tất cả 4 loại địa chỉ của người gửi
     sender_addresses = derive_all_address_types(sender_wif)
-    sender_addr_string = sender_addresses[addr_type]
     
-    utxos_data = get_utxos_by_address(sender_addr_string)
-    utxos_list = utxos_data.get('unspents', [])
-    
-    if not utxos_list:
-        raise ValueError(f"Không có UTXO ở ví {addr_type}.")
+    # 2. Gom UTXO từ TẤT CẢ các ví vào một rổ chung
+    all_utxos = []
+    for addr_type, addr_string in sender_addresses.items():
+        data = get_utxos_by_address(addr_string)
+        unspents = data.get('unspents', [])
+        # Dán nhãn addr_type vào từng tờ tiền để lát nữa biết đường ký
+        for u in unspents:
+            u["addr_type"] = addr_type
+            all_utxos.append(u)
+            
+    if not all_utxos:
+        raise ValueError("Ví không có đồng nào (cả 4 loại địa chỉ đều rỗng).")
         
-    # 2. Bốc nháp để đoán phí
-    selected_utxos_draft, _ = select_utxos(utxos_list, target_amount)
-    dynamic_fee = estimate_tx_fee(addr_type, len(selected_utxos_draft), 2, fee_rate)
+    # 3. Bốc nháp để đoán phí (tạm tính theo input to nhất là legacy cho an toàn)
+    selected_utxos_draft, _ = select_utxos(all_utxos, target_amount)
+    dynamic_fee = estimate_tx_fee("legacy", len(selected_utxos_draft), 2, fee_rate)
     
-    # 3. Bốc thật (Gồm cả tiền gửi + phí)
-    selected_utxos, total = select_utxos(utxos_list, target_amount + dynamic_fee)
+    # 4. Bốc thật (Gồm cả tiền gửi + phí)
+    selected_utxos, total = select_utxos(all_utxos, target_amount + dynamic_fee)
     change = total - target_amount - dynamic_fee
     
-    # 4. Tạo Inputs
+    # 5. Tạo Inputs
     tx_inputs = [TxInput(u["txid"], u["vout"]) for u in selected_utxos]
     
-    # 5. Tạo Outputs (Bao gồm Output gửi đi và Output nhận tiền thừa)
-    if addr_type == "legacy":
-        sender_script = sender_pub.get_address().to_script_pub_key()
-        is_segwit = False
-    elif addr_type == "nested_segwit":
-        sender_script = P2shAddress.from_script(sender_pub.get_segwit_address().to_script_pub_key()).to_script_pub_key()
-        is_segwit = True
-    elif addr_type == "native_segwit":
-        sender_script = sender_pub.get_segwit_address().to_script_pub_key()
-        is_segwit = True
-    elif addr_type == "taproot":
-        sender_script = sender_pub.get_taproot_address().to_script_pub_key()
-        is_segwit = True
+    # 6. Tạo Outputs
+    # Tiền thừa luôn gửi về ví Native Segwit của chính mình cho tiết kiệm phí (Best practice)
+    change_script = sender_pub.get_segwit_address().to_script_pub_key()
         
     tx_outputs = [
         TxOutput(to_satoshis(target_amount), receiver_pub_script),
-        TxOutput(to_satoshis(change), sender_script)
+        TxOutput(to_satoshis(change), change_script)
     ]
     
-    # 6. Khung Giao Dịch
-    tx = Transaction(tx_inputs, tx_outputs, has_segwit=is_segwit)
+    # 7. Khung Giao Dịch
+    tx = Transaction(tx_inputs, tx_outputs, has_segwit=True)
     
-    # 7. Ký Giao Dịch
-    signed_tx = sign_transaction_inputs(tx, sender_priv, selected_utxos, addr_type)
+    # 8. Ký Giao Dịch
+    signed_tx = sign_transaction_inputs(tx, sender_priv, selected_utxos)
     
     return signed_tx, dynamic_fee, selected_utxos
