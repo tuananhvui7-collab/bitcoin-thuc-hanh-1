@@ -192,7 +192,8 @@ def build_and_sign_tx(
     ]
     
     # 7. Khung Giao Dịch
-    tx = Transaction(tx_inputs, tx_outputs, has_segwit=True)
+    is_segwit = any(u["addr_type"] != "legacy" for u in selected_utxos)
+    tx = Transaction(tx_inputs, tx_outputs, has_segwit=is_segwit)
     
     # 8. Ký Giao Dịch
     signed_tx = sign_transaction_inputs(tx, sender_priv, selected_utxos)
