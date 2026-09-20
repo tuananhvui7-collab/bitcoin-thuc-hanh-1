@@ -1,73 +1,54 @@
-# Bitcoin Thực Hành 1 — Antigravity Workspace (đã hiệu chỉnh)
+# 🚀 Bài Thực Hành 1: Mô Phỏng Mạng Lưới Bitcoin (Regtest) & Ví Non-Custodial
 
-⚠️ **Bản cập nhật quan trọng**: phiên bản trước của workspace này dựa trên hiểu lầm
-(deploy full/light/mining node trên testnet4). Sau khi có tài liệu chính thức
-"Simplified Flow" từ giảng viên, workspace đã được xây lại đúng bản chất: đây là
-**bài lập trình trên regtest**, không phải bài deploy hạ tầng.
+Dự án này là một Web App hoàn chỉnh mô phỏng lại cách mạng lưới Bitcoin hoạt động dưới góc nhìn của một chiếc Ví phi tập trung (Non-custodial Wallet), giao tiếp trực tiếp với Bitcoin Node cục bộ (Mạng Regtest).
 
-## Bài thực hành thật sự yêu cầu gì
+## 🗂 Cấu trúc Tài liệu Dự Án (Docs)
 
-1. Cài Bitcoin local network (**regtest**, không phải full node/testnet), đào block
-   ngay lập tức qua RPC.
-2. Từ 1 private key, suy ra 4 loại địa chỉ (Legacy/Nested SegWit/Native SegWit/Taproot).
-3. Nạp coin cho từng địa chỉ bằng chính coinbase reward (đào block = "faucet").
-4. Liệt kê UTXO theo từng loại địa chỉ.
-5. Coin selection: chọn ít UTXO nhất đủ để gửi.
-6. Ký từng UTXO (ECDSA cho legacy/segwit, Schnorr cho taproot).
-7. Build transaction từng loại, gộp thành 1 raw transaction.
-8. Broadcast lên blockchain (local).
-9. Xây UI/UX web hoặc desktop.
-10. Đóng gói toàn bộ bằng Docker Compose, chạy bằng 1 lệnh.
+Để hiểu sâu về cách hoạt động của dự án, vui lòng đọc các tài liệu kỹ thuật trong thư mục `docs/` theo thứ tự sau:
 
-## Stack
+1. [docs/1_thiet_ke_app.md](docs/1_thiet_ke_app.md) - Xem Sơ đồ Usecase, Sequence, Activity để hiểu luồng ứng dụng.
+2. [docs/2_giai_thich_logic_loi.md](docs/2_giai_thich_logic_loi.md) - Cách code lõi Python giải quyết 9 bước của bài toán cốt lõi.
+3. [docs/3_data_structures.md](docs/3_data_structures.md) - Giải phẫu JSON và cấu trúc dữ liệu của các UTXO.
+4. [docs/4_cli_commands.md](docs/4_cli_commands.md) - Danh sách các lệnh Command Line cần biết.
+5. [docs/5_giai_thich_file_test.md](docs/5_giai_thich_file_test.md) - Cách tạo thêm Private Key và chiến lược Test.
+6. [docs/6_docker_guide.md](docs/6_docker_guide.md) - Bí kíp đóng gói dự án lên bất kỳ máy nào bằng Docker.
+7. [docs/7_troubleshooting_bugs.md](docs/7_troubleshooting_bugs.md) - Cẩm nang sửa 5 lỗi phổ biến nhất khi chạy app.
 
-- **Python** + `python-bitcoin-utils` — chủ động chọn thay vì Node.js/`bitcoinjs-lib`
-  (dù `bitcoinjs-lib` phổ biến hơn trong cộng đồng) vì người dùng muốn tránh Node.js
-  và đang muốn luyện Python.
-- **Flask** cho backend + giao diện web.
-- JS thuần tối thiểu ở trình duyệt (không Node.js, không npm).
+---
 
-## Cấu trúc
+## 🛠 Hướng Dẫn Sử Dụng (Quick Start)
 
-```
-bitcoin-thuc-hanh-1/
-├── AGENTS.md                          # Luật cho agent (bản đã hiệu chỉnh)
-├── README.md
-├── docker-compose.yml                 # 2 service: bitcoind (regtest) + app (Flask)
-├── .env.example                       # Mẫu biến môi trường RPC — copy thành .env
-├── .agents/
-│   ├── rules/AGENTS.md                # Antigravity tự load
-│   └── skills/
-│       ├── bitcoin-regtest-lab/       # Bước 1-3: setup, đào block, derive địa chỉ
-│       ├── bitcoin-tx-engineer/       # Bước 4-8: UTXO, coin selection, ký, build, broadcast
-│       ├── bitcoin-webapp-ui/         # Bước 9: Flask + JS tối thiểu
-│       └── bitcoin-docker-package/    # Bước 10: đóng gói Docker Compose
-├── docs/
-│   └── bao-cao-thuc-hanh-bitcoin.md   # Tài liệu lý thuyết nền (UTXO/ECDSA/địa chỉ...)
-├── src/                                # Nơi viết code thật
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── templates/
-│   └── static/
-└── evidence/                          # Lưu output/ảnh chụp làm bằng chứng
+### Yêu Cầu Cài Đặt
+- Cài đặt [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+- (Chỉ khi không dùng Docker) Python 3.10+ và Bitcoin Core.
+
+### Chạy Dự Án bằng 1 Lệnh (Bằng Docker)
+
+Mở Terminal (Command Prompt) tại thư mục chứa dự án và chạy:
+```bash
+docker-compose up -d --build
 ```
 
-## Điểm đặc biệt: workspace này được thiết kế để LUYỆN PYTHON, không chỉ chạy được bài
+Đợi 15-30 giây để hệ thống tải Node và thiết lập môi trường. Sau đó:
+👉 **Mở Trình duyệt và truy cập: [http://localhost:5000](http://localhost:5000)**
 
-Trong `AGENTS.md`, agent được yêu cầu: với các hàm cốt lõi (derive địa chỉ, coin
-selection, ký giao dịch), **không đưa code đầy đủ ngay** — chỉ đưa khung sườn hàm
-+ API cần dùng, để bạn tự viết thân hàm và được review lại. Phần "lắp ráp" không
-mang tính học thuật (Flask boilerplate, setup regtest) thì agent làm thẳng.
+---
 
-Nếu bạn đang gấp deadline và chỉ cần chạy được, cứ nói thẳng với agent ("tôi đang
-gấp, viết luôn giúp tôi") — agent sẽ tôn trọng và đưa code đầy đủ ngay, không ép học
-lúc không phù hợp.
+## 🎮 Cách Trải Nghiệm Ứng Dụng (End-to-End Test)
 
-## Vài prompt mẫu
-
-- "Giúp tôi setup regtest node và đào vài block thử."
-- "Hướng dẫn tôi viết hàm suy ra 4 loại địa chỉ từ 1 private key." (agent sẽ đưa khung sườn, không code full)
-- "Tôi viết xong hàm coin selection rồi, review giúp tôi." (dán code)
-- "Tôi đang gấp deadline, viết luôn code ký + build transaction giúp tôi."
-- "Giúp tôi làm giao diện Flask đơn giản cho bước cuối."
-- "Đóng gói project này bằng Docker giúp tôi."
+1. **Đăng nhập:** 
+   - Trên thanh Menu, chọn **Ví Test 1 (Alice)** để lấy Ví Cổ Đông (Ví này sẽ luôn nhận được 50 BTC mỗi khi đào Block).
+   - *Mẹo:* Bạn có thể gõ `python generate_key.py` ở Terminal để tự tạo một ví hoàn toàn mới, sau đó chọn **"Dùng WIF Khác"** để đăng nhập bằng mã vừa tạo.
+2. **Chuyển tiền:**
+   - Tại màn hình Dashboard, copy một địa chỉ (VD: Native Segwit) của ví khác.
+   - Kéo xuống Form chuyển tiền, Dán địa chỉ nhận vào.
+   - Nhập số BTC muốn gửi và **Nhập Phí Thợ Đào (BTC)**. (Ví dụ: `0.0001` BTC).
+   - Bấm **Chuyển tiền**.
+3. **Quan sát Mempool (Sổ Cái):**
+   - Bạn sẽ thấy giao dịch vừa tạo lọt vào bảng Sổ Cái với trạng thái màu vàng **"Đang chờ (Mempool)"**.
+   - Lúc này, số dư của bạn đã bị giảm (App tự khóa UTXO để tránh Double-Spend). Tuy nhiên, người nhận vẫn chưa có tiền.
+4. **Khai thác Block (Mining):**
+   - Bấm nút **"Miner: Đóng Block"** (Nút màu vàng trên cùng góc phải).
+   - Thợ Đào (Alice) sẽ nhận được Tiền thưởng 50 BTC gốc + Tiền phí `0.0001` BTC mà bạn vừa trả.
+   - Sổ Cái sẽ tự động cập nhật trạng thái giao dịch thành **"Hoàn thành"** màu xanh.
+5. **Chúc mừng!** Bạn vừa thực hiện trọn vẹn vòng đời của một giao dịch Bitcoin!
