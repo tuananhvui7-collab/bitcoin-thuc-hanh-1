@@ -63,8 +63,11 @@ def get_wallet_info():
         
     try:
         info = get_total_balance(wif)
-        # Tìm lịch sử giao dịch liên quan đến WIF này
-        history = [tx for tx in TRANSACTION_HISTORY if tx['sender_wif'] == wif]
+        # Lấy danh sách địa chỉ của ví này để so sánh
+        my_addresses = list(info['addresses'].values())
+        
+        # Tìm lịch sử giao dịch liên quan đến WIF này (gửi đi HOẶC nhận về)
+        history = [tx for tx in TRANSACTION_HISTORY if (tx['sender_wif'] == wif) or (tx['recipient'] in my_addresses)]
         
         return jsonify({
             'success': True,
