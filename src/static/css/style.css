@@ -18,7 +18,7 @@ body {
     position: relative;
 }
 
-/* Background animated orbs for a modern Web3 feel */
+/* Background animated orbs */
 body::before, body::after {
     content: '';
     position: fixed;
@@ -49,7 +49,7 @@ body::after {
     100% { transform: translate(100px, 50px); }
 }
 
-/* Glassmorphism Classes */
+/* Glassmorphism */
 .glass-panel {
     background: var(--glass-bg);
     backdrop-filter: blur(16px);
@@ -66,24 +66,24 @@ body::after {
 
 .glass-header {
     border-bottom: 1px solid var(--glass-border);
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
     font-weight: 600;
     letter-spacing: 0.5px;
 }
 
-/* Navbar overrides */
+/* Navbar */
 .navbar.glass-nav {
     background: rgba(11, 12, 16, 0.8) !important;
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--glass-border) !important;
 }
 
-/* Typography and Colors */
+/* Typography */
 .text-neon-orange { color: var(--neon-orange); text-shadow: 0 0 10px rgba(247, 147, 26, 0.5); }
 .text-neon-blue { color: var(--neon-blue); text-shadow: 0 0 10px rgba(69, 243, 255, 0.5); }
 .text-neon-purple { color: var(--neon-purple); text-shadow: 0 0 10px rgba(176, 38, 255, 0.5); }
 
-/* Form Elements overrides */
+/* Forms */
 .form-control, .form-select, .input-group-text {
     background-color: rgba(0, 0, 0, 0.3) !important;
     border: 1px solid var(--glass-border) !important;
@@ -99,58 +99,62 @@ body::after {
 /* Buttons */
 .btn-glass-primary {
     background: linear-gradient(135deg, #0052d4, #4364f7, #6fb1fc);
-    border: none;
-    color: white;
-    font-weight: 600;
-    border-radius: 8px;
+    border: none; color: white; font-weight: 600; border-radius: 8px;
     transition: all 0.3s ease;
 }
-
-.btn-glass-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(67, 100, 247, 0.4);
-}
+.btn-glass-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(67,100,247,0.4); }
 
 .btn-glass-warning {
     background: linear-gradient(135deg, #f7971e, #ffd200);
-    border: none;
-    color: #000;
-    font-weight: 600;
-    border-radius: 8px;
+    border: none; color: #000; font-weight: 600; border-radius: 8px;
     transition: all 0.3s ease;
 }
-
-.btn-glass-warning:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(247, 151, 30, 0.4);
-}
+.btn-glass-warning:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(247,151,30,0.4); }
+.btn-glass-warning:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
 
 .btn-glass-success {
     background: linear-gradient(135deg, #11998e, #38ef7d);
-    border: none;
-    color: white;
-    font-weight: 600;
-    border-radius: 8px;
+    border: none; color: white; font-weight: 600; border-radius: 8px;
     transition: all 0.3s ease;
 }
+.btn-glass-success:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(56,239,125,0.4); }
 
-.btn-glass-success:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(56, 239, 125, 0.4);
+/* Address boxes with copy */
+.addr-wrap {
+    position: relative;
 }
 
-/* Address Boxes */
 .addr-box {
     background-color: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--glass-border);
-    padding: 12px;
+    padding: 10px 38px 10px 12px;
     border-radius: 8px;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     word-break: break-all;
-    position: relative;
-    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
 }
+
+.addr-box:hover { border-color: rgba(255,255,255,0.2); }
+
+.btn-copy {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    transition: color 0.2s;
+    line-height: 1;
+}
+.btn-copy:hover { color: var(--neon-blue); }
+.btn-copy.copied { color: #38ef7d; }
 
 /* Tables */
 .table-glass {
@@ -159,45 +163,30 @@ body::after {
     --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
     border-color: var(--glass-border);
 }
-
 .table-glass th {
     background-color: rgba(0, 0, 0, 0.4);
     border-bottom: 2px solid var(--glass-border);
     color: var(--text-muted);
     font-weight: 600;
 }
+.table-glass td { vertical-align: middle; }
 
-.table-glass td {
-    vertical-align: middle;
-}
+/* TX direction colors */
+.tx-sent { color: #ff6b6b !important; }
+.tx-received { color: #38ef7d !important; }
 
 /* Animations */
-.slide-in-right {
-    animation: slideInRight 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-}
-
+.slide-in-right { animation: slideInRight 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
 @keyframes slideInRight {
     0% { transform: translateX(50px); opacity: 0; }
     100% { transform: translateX(0); opacity: 1; }
 }
 
-.spin {
-    display: inline-block;
-    animation: spin 2s linear infinite;
-}
+.spin { display: inline-block; animation: spin 2s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
-@keyframes spin {
-    100% { transform: rotate(360deg); }
-}
-
-.fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-}
-
-@keyframes fadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-}
+.fade-in { animation: fadeIn 0.5s ease-in-out; }
+@keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
 
 /* UTXO Badge */
 .utxo-item {
@@ -210,28 +199,125 @@ body::after {
     justify-content: space-between;
     align-items: center;
 }
-
-.utxo-signature {
-    font-size: 0.75rem;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-.sig-ecdsa { background: rgba(247, 147, 26, 0.2); color: #f7931a; border: 1px solid #f7931a; }
-.sig-schnorr { background: rgba(176, 38, 255, 0.2); color: #b026ff; border: 1px solid #b026ff; }
+.utxo-signature { font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; padding: 4px 8px; border-radius: 4px; }
+.sig-ecdsa { background: rgba(247,147,26,0.2); color: #f7931a; border: 1px solid #f7931a; }
+.sig-schnorr { background: rgba(176,38,255,0.2); color: #b026ff; border: 1px solid #b026ff; }
 
 /* Hex Box */
 .hex-box {
-    background: #000;
-    color: #0f0;
-    font-family: monospace;
+    background: #000; color: #0f0; font-family: monospace; font-size: 0.8rem;
+    padding: 15px; border-radius: 8px; border: 1px solid #333;
+    max-height: 200px; overflow-y: auto; word-break: break-all;
+}
+
+/* ============================================
+   9-STEP FLOW PANEL
+   ============================================ */
+.flow-panel {
+    background: rgba(15, 16, 22, 0.7);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.flow-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.step-flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--glass-border) transparent;
+}
+
+.step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 72px;
+    position: relative;
+    cursor: default;
+}
+
+/* Connecting line between steps */
+.step-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 17px;
+    left: 62%;
+    width: 76%;
+    height: 2px;
+    background: var(--glass-border);
+    transition: background 0.4s ease;
+    z-index: 0;
+}
+
+.step-item.done:not(:last-child)::after { background: #38ef7d; }
+.step-item.active:not(:last-child)::after { background: var(--neon-orange); }
+
+.step-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.8rem;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    max-height: 200px;
-    overflow-y: auto;
-    word-break: break-all;
+    font-weight: bold;
+    background: rgba(0, 0, 0, 0.5);
+    transition: all 0.35s ease;
+    z-index: 1;
+    position: relative;
+}
+
+.step-item.done .step-circle {
+    border-color: #38ef7d;
+    color: #38ef7d;
+    background: rgba(56, 239, 125, 0.12);
+}
+
+.step-item.active .step-circle {
+    border-color: var(--neon-orange);
+    color: var(--neon-orange);
+    background: rgba(247, 147, 26, 0.15);
+    box-shadow: 0 0 14px rgba(247, 147, 26, 0.55);
+    animation: step-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes step-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(247, 147, 26, 0.4); }
+    50%       { box-shadow: 0 0 22px rgba(247, 147, 26, 0.9); }
+}
+
+.step-label {
+    font-size: 0.6rem;
+    text-align: center;
+    margin-top: 5px;
+    color: var(--text-muted);
+    max-width: 72px;
+    line-height: 1.25;
+    transition: color 0.3s;
+    white-space: normal;
+}
+
+.step-item.done .step-label  { color: #38ef7d; }
+.step-item.active .step-label { color: var(--neon-orange); font-weight: 600; }
+
+/* Custom table */
+.custom-table thead th {
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.85rem;
 }

@@ -30,6 +30,7 @@ def derive_all_address_types(wif: str) -> dict:
         "taproot": pub.get_taproot_address().to_string()
     }
 
+# Step 4: Xem UTXOs
 def get_utxos_by_address(address:str) -> dict:
     #Lệnh  scantxoutset yêu cầu cần cung cấp cho nó 1 mảng các descriptor.
     # scan_request là 1 list bên trong chứa 1 dict (ScanObjects)
@@ -42,6 +43,7 @@ def get_utxos_by_address(address:str) -> dict:
     
 from decimal import Decimal
 
+# step chọn UTXOs
 def select_utxos(utxos: list, target_amount: Decimal) -> tuple[list, Decimal]:
     """
     Thuật toán Largest-First: Chọn các UTXO lớn nhất để tối thiểu hóa số lượng UTXO, 
@@ -87,6 +89,7 @@ def estimate_tx_fee(address_type: str, num_inputs: int, num_outputs: int, fee_ra
     total_fee_satoshi = estimated_size * fee_rate_sat_per_byte
     return Decimal(str(total_fee_satoshi / 100_000_000))
 
+# Step 8: Ký giao dịch
 def sign_transaction_inputs(
     tx: Transaction, 
     priv_key: PrivateKey, 
@@ -124,14 +127,19 @@ def sign_transaction_inputs(
             script_pubkey = pub.get_address().to_script_pub_key()
             sig = priv_key.sign_input(tx, index, script_pubkey)
             tx.inputs[index].script_sig = Script([sig, pub.to_hex()])
+            tx.witnesses.append(TxWitnessInput([]))
             
         elif a_type == "nested_segwit":
+            # P2SH-P2WPKH: ký với p2pkh script (inner pubkey hash), KHÔNG phải redeem script
+            # script_sig phải là <push redeem_script> (tức p2wpkh script dạng hex)
             p2pkh_script = pub.get_address().to_script_pub_key()
+            redeem_script = pub.get_segwit_address().to_script_pub_key()
             sig = priv_key.sign_segwit_input(tx, index, p2pkh_script, to_satoshis(utxo["amount"]))
-            tx.inputs[index].script_sig = Script([pub.get_segwit_address().to_script_pub_key().to_hex()])
+            tx.inputs[index].script_sig = Script([redeem_script.to_hex()])
             tx.witnesses.append(TxWitnessInput([sig, pub.to_hex()]))
             
         elif a_type == "native_segwit":
+            # P2WPKH: ký với p2pkh script (inner pubkey hash)
             p2pkh_script = pub.get_address().to_script_pub_key()
             sig = priv_key.sign_segwit_input(tx, index, p2pkh_script, to_satoshis(utxo["amount"]))
             tx.witnesses.append(TxWitnessInput([sig, pub.to_hex()]))
@@ -143,13 +151,15 @@ def sign_transaction_inputs(
             
     return tx
 
+#  All Step 
 def build_and_sign_tx(
     sender_wif: str,
     receiver_pub_script: Script,
     target_amount: Decimal,
     fee_rate: int = 10,
     absolute_fee: Decimal = None,
-    locked_utxos: set = None
+    locked_utxos: set = None,
+    op_return_msg: str = None
 ) -> tuple[Transaction, Decimal, list]:
     """
     API cốt lõi cho Web App: Xây dựng và Ký giao dịch từ A-Z. Hỗ trợ Mix UTXO.
@@ -198,9 +208,21 @@ def build_and_sign_tx(
     change_script = sender_pub.get_segwit_address().to_script_pub_key()
         
     tx_outputs = [
-        TxOutput(to_satoshis(target_amount), receiver_pub_script),
-        TxOutput(to_satoshis(change), change_script)
+        TxOutput(to_satoshis(target_amount), receiver_pub_script)
     ]
+    # Tiền thừa nhỏ hơn 546 satoshis (Dust Limit) sẽ bị tính luôn vào phí giao dịch
+    if change > Decimal('0.00000546'):
+        tx_outputs.append(TxOutput(to_satoshis(change), change_script))
+    
+    # 6.5 Thêm OP_RETURN (nếu có)
+    if op_return_msg:
+        # Mã hóa thông điệp sang Hex UTF-8
+        msg_bytes = op_return_msg.encode('utf-8')
+        if len(msg_bytes) > 80:
+            raise ValueError(f"Lời nhắn OP_RETURN quá dài ({len(msg_bytes)} bytes). Tối đa cho phép là 80 bytes.")
+        msg_hex = msg_bytes.hex()
+        op_return_script = Script(['OP_RETURN', msg_hex])
+        tx_outputs.append(TxOutput(0, op_return_script))
     
     # 7. Khung Giao Dịch
     is_segwit = any(u["addr_type"] != "legacy" for u in selected_utxos)

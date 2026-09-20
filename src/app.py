@@ -18,7 +18,7 @@ setup('regtest')
 MINER_WIF = os.environ.get("MINER_WIF")
 LOCKED_UTXOS = set()
 
-HISTORY_FILE = 'history.json'
+HISTORY_FILE = 'data/history.json'
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -64,6 +64,8 @@ def index():
 @app.route('/api/wallet/info', methods=['GET'])
 def get_wallet_info():
     wif = request.args.get('wif')
+    page = int(request.args.get('page', 1))
+    limit = int(request.args.get('limit', 10))
     if not wif: return jsonify({'success': False, 'error': 'Thiếu WIF'}), 400
         
     try:
@@ -73,11 +75,22 @@ def get_wallet_info():
         
         # Tìm lịch sử giao dịch liên quan đến WIF này (gửi đi HOẶC nhận về)
         history = [tx for tx in TRANSACTION_HISTORY if (tx['sender_wif'] == wif) or (tx['recipient'] in my_addresses)]
+        # Đảo ngược để giao dịch mới nhất lên đầu
+        history.reverse()
+        
+        # Phân trang
+        total_items = len(history)
+        start = (page - 1) * limit
+        end = start + limit
+        paginated_history = history[start:end]
         
         return jsonify({
             'success': True,
             'data': info,
-            'history': history
+            'history': paginated_history,
+            'total_items': total_items,
+            'total_pages': (total_items + limit - 1) // limit,
+            'current_page': page
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -102,6 +115,7 @@ def build_transaction():
     recipient_address = data.get('recipient_address')
     amount_str = data.get('amount', '0')
     absolute_fee_str = data.get('absolute_fee')
+    op_return_msg = data.get('op_return_msg')
     
     try:
         if not sender_wif or not recipient_address:
@@ -137,7 +151,8 @@ def build_transaction():
             receiver_pub_script=rec_script,
             target_amount=target_amount,
             absolute_fee=absolute_fee,
-            locked_utxos=LOCKED_UTXOS
+            locked_utxos=LOCKED_UTXOS,
+            op_return_msg=op_return_msg
         )
         
         hex_tx = signed_tx.serialize()
