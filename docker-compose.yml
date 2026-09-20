@@ -27,6 +27,8 @@ services:
     container_name: btc-lab-app
     depends_on:
       - bitcoind
+    env_file:
+      - .env
     environment:
       - RPC_HOST=bitcoind        # tên service, KHÔNG dùng 127.0.0.1 trong container
       - RPC_PORT=18443
