@@ -147,7 +147,8 @@ def build_and_sign_tx(
     sender_wif: str,
     receiver_pub_script: Script,
     target_amount: Decimal,
-    fee_rate: int = 10
+    fee_rate: int = 10,
+    absolute_fee: Decimal = None
 ) -> tuple[Transaction, Decimal, list]:
     """
     API cốt lõi cho Web App: Xây dựng và Ký giao dịch từ A-Z. Hỗ trợ Mix UTXO.
@@ -171,9 +172,14 @@ def build_and_sign_tx(
     if not all_utxos:
         raise ValueError("Ví không có đồng nào (cả 4 loại địa chỉ đều rỗng).")
         
-    # 3. Bốc nháp để đoán phí (tạm tính theo input to nhất là legacy cho an toàn)
-    selected_utxos_draft, _ = select_utxos(all_utxos, target_amount)
-    dynamic_fee = estimate_tx_fee("legacy", len(selected_utxos_draft), 2, fee_rate)
+    # 3. Tính phí
+    if absolute_fee is not None:
+        dynamic_fee = absolute_fee
+        selected_utxos_draft = []
+    else:
+        # Bốc nháp để đoán phí (tạm tính theo input to nhất là legacy cho an toàn)
+        selected_utxos_draft, _ = select_utxos(all_utxos, target_amount)
+        dynamic_fee = estimate_tx_fee("legacy", len(selected_utxos_draft), 2, fee_rate)
     
     # 4. Bốc thật (Gồm cả tiền gửi + phí)
     selected_utxos, total = select_utxos(all_utxos, target_amount + dynamic_fee)

@@ -27,8 +27,8 @@ Dưới đây là 10 bước chuẩn của dự án và tình trạng hiện t�
 
 ### A. Nhóm Logic Cốt lõi
 1. **Không thể gộp (Mix) nhiều loại UTXO:** 
-   - **Thừa nhận:** Đúng. Thiết kế hiện tại cố tình ép dùng 1 loại địa chỉ (thông qua biến `addr_type`) để code minh bạch, dễ theo dõi, tránh phức tạp hóa cho bài thực hành Nhập môn. 
-   - **Hướng xử lý:** Nếu muốn trộn (mix), ta phải đổi cấu trúc đầu vào thành một Mảng các UTXO đa dạng (Legacy + Taproot...), nhưng việc này không thực sự cần thiết ở Bước này. Ta sẽ giữ nguyên triết lý "1 giao dịch - 1 loại ví nguồn".
+   - **Tình trạng cũ:** Thiết kế ban đầu cố tình ép dùng 1 loại địa chỉ (thông qua biến `addr_type`) để code minh bạch, dễ theo dõi.
+   - **HIỆN TẠI ĐÃ GIẢI QUYẾT (FIXED):** Trong đợt nâng cấp lõi mới nhất, chúng ta đã **đập đi xây lại** toàn bộ logic ở `tx_builder.py`. Hệ thống giờ đây có khả năng gom (Mix) tiền từ TẤT CẢ các ví (Legacy, SegWit, Taproot...) vào chung một rổ để ký và gửi đi trong cùng một giao dịch. Ví đã trở thành một cái ví thực thụ!
 2. **Điểm nghẽn kịch bản Taproot (`[script_pubkey] * len`):**
    - **Thừa nhận:** Rất tinh tế. Dòng code này giả định mọi UTXO đầu vào đều có chung cấu trúc mã lệnh (Script). Nếu nâng cấp lên Mix UTXO (như ý 1) thì dòng này sẽ lỗi. Do chúng ta chốt dùng "1 loại ví nguồn", dòng này hiện tại vẫn an toàn tuyệt đối.
 
