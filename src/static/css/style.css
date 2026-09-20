@@ -1,0 +1,237 @@
+:root {
+    --bg-color: #0b0c10;
+    --glass-bg: rgba(30, 31, 34, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --neon-blue: #45f3ff;
+    --neon-orange: #f7931a;
+    --neon-purple: #b026ff;
+    --text-main: #e0e0e0;
+    --text-muted: #8892b0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Background animated orbs for a modern Web3 feel */
+body::before, body::after {
+    content: '';
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    z-index: -1;
+    opacity: 0.4;
+    animation: float 20s infinite alternate;
+}
+
+body::before {
+    background: radial-gradient(circle, var(--neon-blue) 0%, transparent 60%);
+    top: -200px;
+    left: -200px;
+}
+
+body::after {
+    background: radial-gradient(circle, var(--neon-purple) 0%, transparent 60%);
+    bottom: -200px;
+    right: -200px;
+    animation-delay: -10s;
+}
+
+@keyframes float {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(100px, 50px); }
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-panel:hover {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.glass-header {
+    border-bottom: 1px solid var(--glass-border);
+    padding: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Navbar overrides */
+.navbar.glass-nav {
+    background: rgba(11, 12, 16, 0.8) !important;
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border) !important;
+}
+
+/* Typography and Colors */
+.text-neon-orange { color: var(--neon-orange); text-shadow: 0 0 10px rgba(247, 147, 26, 0.5); }
+.text-neon-blue { color: var(--neon-blue); text-shadow: 0 0 10px rgba(69, 243, 255, 0.5); }
+.text-neon-purple { color: var(--neon-purple); text-shadow: 0 0 10px rgba(176, 38, 255, 0.5); }
+
+/* Form Elements overrides */
+.form-control, .form-select, .input-group-text {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--text-main) !important;
+    border-radius: 8px;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(69, 243, 255, 0.25) !important;
+    border-color: var(--neon-blue) !important;
+}
+
+/* Buttons */
+.btn-glass-primary {
+    background: linear-gradient(135deg, #0052d4, #4364f7, #6fb1fc);
+    border: none;
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-glass-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 100, 247, 0.4);
+}
+
+.btn-glass-warning {
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    border: none;
+    color: #000;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-glass-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(247, 151, 30, 0.4);
+}
+
+.btn-glass-success {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    border: none;
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-glass-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(56, 239, 125, 0.4);
+}
+
+/* Address Boxes */
+.addr-box {
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    padding: 12px;
+    border-radius: 8px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Tables */
+.table-glass {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-main);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+    border-color: var(--glass-border);
+}
+
+.table-glass th {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-bottom: 2px solid var(--glass-border);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.table-glass td {
+    vertical-align: middle;
+}
+
+/* Animations */
+.slide-in-right {
+    animation: slideInRight 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes slideInRight {
+    0% { transform: translateX(50px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+.spin {
+    display: inline-block;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* UTXO Badge */
+.utxo-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.utxo-signature {
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.sig-ecdsa { background: rgba(247, 147, 26, 0.2); color: #f7931a; border: 1px solid #f7931a; }
+.sig-schnorr { background: rgba(176, 38, 255, 0.2); color: #b026ff; border: 1px solid #b026ff; }
+
+/* Hex Box */
+.hex-box {
+    background: #000;
+    color: #0f0;
+    font-family: monospace;
+    font-size: 0.8rem;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    max-height: 200px;
+    overflow-y: auto;
+    word-break: break-all;
+}

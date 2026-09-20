@@ -3,103 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Regtest Web Wallet</title>
+    <title>Regtest Web Wallet - Glassmorphism</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <style>
-        body { background-color: #121212; color: #e0e0e0; }
-        .card { background-color: #1e1e1e; border: 1px solid #333; }
-        .btc-icon { color: #f7931a; }
-        .addr-box { background-color: #2a2a2a; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.85rem; word-break: break-all; }
-        .table-dark { --bs-table-bg: #1e1e1e; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary mb-4">
+    <nav class="navbar navbar-expand-lg glass-nav mb-4 sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="#"><i class="bi bi-wallet2 btc-icon me-2"></i>Regtest Wallet</a>
-            <div class="d-flex align-items-center">
-                <select class="form-select bg-dark text-light border-secondary me-2" id="wallet-selector" style="width: auto;">
+            <a class="navbar-brand text-neon-orange fw-bold" href="#"><i class="bi bi-currency-bitcoin fs-3 align-middle"></i> Regtest</a>
+            
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills ms-4" id="mainTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold text-light" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-view" type="button" role="tab"><i class="bi bi-wallet2"></i> Ví Người Dùng</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-warning" id="miner-tab" data-bs-toggle="tab" data-bs-target="#miner-view" type="button" role="tab"><i class="bi bi-pickaxe"></i> Trạm Thợ Đào</button>
+                </li>
+            </ul>
+
+            <div class="d-flex align-items-center" id="user-nav-controls">
+                <select class="form-select me-2" id="wallet-selector" style="width: auto;">
                     <option value="" selected disabled>-- Chọn Ví Đăng Nhập --</option>
                     <option value="cSmKSQgPLqn9jSt89KjbhTiBpT7qK4jWrdQnmgMzHPuhZvVbp82V">Ví Test 1 (Alice)</option>
                     <option value="cUi51ejxfidY9JMwFg8orA1zFFhHCwyGtsKcb42gaTPRScGrVNGJ">Ví Test 2 (Bob)</option>
                 </select>
-                <button class="btn btn-outline-info btn-sm me-2" id="btn-custom-wif">Dùng WIF Khác</button>
-                <button class="btn btn-outline-success btn-sm me-3" id="btn-create-wallet">Tạo Ví Mới</button>
-                <button class="btn btn-warning btn-sm" id="btn-mine" title="Đóng Block xác nhận giao dịch trên mạng Regtest" style="display: none;">
-                    <i class="bi bi-pickaxe"></i> Miner: Đóng Block
-                </button>
+                <button class="btn btn-outline-info btn-sm me-2" id="btn-custom-wif"><i class="bi bi-key"></i> WIF Khác</button>
+                <button class="btn btn-glass-success btn-sm px-3" id="btn-create-wallet"><i class="bi bi-plus-circle"></i> Tạo Ví</button>
             </div>
         </div>
     </nav>
-
+    
+    <div class="tab-content" id="mainTabContent">
+        <!-- TAB: VÍ NGƯỜI DÙNG -->
+        <div class="tab-pane fade show active" id="user-view" role="tabpanel">
     <!-- Màn hình chờ Đăng nhập -->
-    <div class="container text-center mt-5" id="login-prompt">
-        <i class="bi bi-shield-lock text-muted" style="font-size: 5rem;"></i>
-        <h4 class="mt-3 text-muted">Vui lòng chọn ví ở Menu phía trên để đăng nhập</h4>
+    <div class="container text-center mt-5 fade-in" id="login-prompt">
+        <i class="bi bi-shield-lock text-muted" style="font-size: 6rem; opacity: 0.5;"></i>
+        <h3 class="mt-4 text-light fw-light">Vui lòng chọn ví ở Menu phía trên để đăng nhập</h3>
     </div>
 
     <!-- MAIN DASHBOARD -->
-    <div class="container" id="main-dashboard" style="display: none;">
+    <div class="container fade-in" id="main-dashboard" style="display: none;">
         <div class="row g-4 mb-4">
             
             <!-- THÔNG TIN VÍ -->
-            <div class="col-md-5">
-                <div class="card h-100 shadow-sm border-info">
-                    <div class="card-header border-bottom border-secondary pt-3">
-                        <h5 class="card-title text-info"><i class="bi bi-person-badge"></i> Ví Của Tôi</h5>
+            <div class="col-lg-4">
+                <div class="glass-panel h-100">
+                    <div class="glass-header text-neon-blue">
+                        <i class="bi bi-wallet2"></i> VÍ CỦA TÔI
                     </div>
-                    <div class="card-body">
-                        <h2 class="mb-4 text-center"><span id="my-balance">0.00000000</span> <small class="text-muted fs-6">BTC</small></h2>
+                    <div class="card-body p-4">
+                        <h2 class="mb-4 text-center fw-bold"><span id="my-balance" class="text-white">0.00000000</span> <small class="text-muted fs-6">BTC</small></h2>
                         <h6 class="text-muted mb-3 border-bottom border-secondary pb-2">Địa chỉ nhận tiền (Tự động cấp):</h6>
-                        <div class="mb-2">
-                            <span class="badge text-bg-warning">Legacy</span>
-                            <div class="addr-box mt-1 text-warning" id="addr-legacy">...</div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge text-bg-warning">Legacy (P2PKH)</span>
+                                <small class="text-warning fw-bold"><span id="bal-legacy">0</span> BTC</small>
+                            </div>
+                            <div class="addr-box text-warning" id="addr-legacy">...</div>
                         </div>
-                        <div class="mb-2">
-                            <span class="badge text-bg-primary">Native Segwit</span>
-                            <div class="addr-box mt-1 text-primary" id="addr-native">...</div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge text-bg-info">Nested Segwit (P2SH)</span>
+                                <small class="text-info fw-bold"><span id="bal-nested">0</span> BTC</small>
+                            </div>
+                            <div class="addr-box text-info" id="addr-nested">...</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge text-bg-primary">Native Segwit (P2WPKH)</span>
+                                <small class="text-primary fw-bold"><span id="bal-native">0</span> BTC</small>
+                            </div>
+                            <div class="addr-box text-primary" id="addr-native">...</div>
                         </div>
                         <div>
-                            <span class="badge text-bg-success">Taproot</span>
-                            <div class="addr-box mt-1 text-success" id="addr-taproot">...</div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge text-bg-success">Taproot (P2TR)</span>
+                                <small class="text-success fw-bold"><span id="bal-taproot">0</span> BTC</small>
+                            </div>
+                            <div class="addr-box text-success" id="addr-taproot">...</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- FORM GỬI TIỀN -->
-            <div class="col-md-7">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header border-bottom border-secondary pt-3">
-                        <h5 class="card-title"><i class="bi bi-send"></i> Chuyển Tiền</h5>
+            <!-- FORM WIZARD -->
+            <div class="col-lg-8">
+                <div class="row h-100 g-4">
+                    <!-- BƯỚC 1: NHẬP THÔNG TIN -->
+                    <div class="col-12" id="step1-panel">
+                        <div class="glass-panel h-100">
+                            <div class="glass-header text-neon-orange">
+                                <i class="bi bi-send"></i> BƯỚC 1: KHỞI TẠO GIAO DỊCH
+                            </div>
+                            <div class="card-body p-4">
+                                <form id="transfer-form">
+                                    <div class="mb-4">
+                                        <label class="form-label text-light">Địa chỉ người nhận</label>
+                                        <input type="text" class="form-control py-2" id="recipient-addr" placeholder="Nhập địa chỉ Legacy, Segwit hoặc Taproot..." required>
+                                    </div>
+                                    <div class="row mb-4">
+                                        <div class="col-md-7">
+                                            <label class="form-label text-light">Số tiền gửi (BTC)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="bi bi-currency-bitcoin text-neon-orange"></i></span>
+                                                <input type="number" step="0.00000001" class="form-control py-2" id="amount" placeholder="0.0" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label text-light">Phí thợ đào (BTC)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="bi bi-fuel-pump text-neon-purple"></i></span>
+                                                <input type="number" step="0.00000001" class="form-control py-2" id="fee-btc" value="0.00001" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-glass-primary w-100 py-3 fs-5" id="btn-build-tx">
+                                        <i class="bi bi-cpu"></i> Khởi Tạo Giao Dịch
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <form id="transfer-form">
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Địa chỉ người nhận</label>
-                                <input type="text" class="form-control bg-dark text-light border-secondary" id="recipient-addr" placeholder="Nhập địa chỉ Legacy, Segwit hoặc Taproot..." required>
+
+                    <!-- BƯỚC 2: PHÂN TÍCH (Ẩn mặc định) -->
+                    <div class="col-12 slide-in-right" id="step2-panel" style="display: none;">
+                        <div class="glass-panel border-info">
+                            <div class="glass-header text-neon-blue d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-search"></i> BƯỚC 2: PHÂN TÍCH KỸ THUẬT</span>
+                                <button class="btn btn-sm btn-outline-light" id="btn-cancel-tx"><i class="bi bi-x-lg"></i> Hủy</button>
                             </div>
-                            <div class="row mb-4">
-                                <div class="col-md-7">
-                                    <label class="form-label text-muted">Số tiền gửi (BTC)</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-dark text-light border-secondary"><i class="bi bi-currency-bitcoin"></i></span>
-                                        <input type="number" step="0.00000001" class="form-control bg-dark text-light border-secondary" id="amount" placeholder="0.0" required>
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-md-6 border-end border-secondary">
+                                        <h6 class="text-neon-purple mb-3"><i class="bi bi-diagram-3"></i> [Bước 4 & 5] UTXO Được Chọn</h6>
+                                        <div id="utxo-list" style="max-height: 200px; overflow-y: auto;">
+                                            <!-- JS injects here -->
+                                        </div>
+                                        <div class="mt-3 text-muted small">
+                                            <i class="bi bi-info-circle"></i> Hệ thống đã tự động bốc các tờ UTXO này để thanh toán.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 pl-md-4">
+                                        <h6 class="text-neon-orange mb-3"><i class="bi bi-filetype-raw"></i> [Bước 7] Raw Transaction Hex</h6>
+                                        <div class="hex-box" id="raw-hex-box">
+                                            <!-- JS injects here -->
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-5">
-                                    <label class="form-label text-muted">Phí thợ đào (BTC)</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-dark text-light border-secondary"><i class="bi bi-currency-bitcoin"></i></span>
-                                        <input type="number" step="0.00000001" class="form-control bg-dark text-light border-secondary" id="fee-btc" value="0.00001" required>
-                                    </div>
+                                <div class="mt-4">
+                                    <button class="btn btn-glass-success w-100 py-3 fs-5" id="btn-broadcast-tx">
+                                        <i class="bi bi-rocket-takeoff"></i> [Bước 8] Phát Sóng Lên Mempool
+                                    </button>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100 py-2 fs-5" id="btn-transfer">
-                                Khởi tạo & Phát sóng Giao Dịch
-                            </button>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -107,28 +167,128 @@
         </div>
         
         <!-- SỔ CÁI (LEDGER) -->
-        <div class="row">
+        <div class="row mt-2">
             <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header border-bottom border-secondary pt-3">
-                        <h5 class="card-title"><i class="bi bi-list-columns-reverse"></i> Lịch Sử Giao Dịch (Sổ Cái)</h5>
+                <div class="glass-panel">
+                    <div class="glass-header text-light">
+                        <i class="bi bi-list-columns-reverse text-neon-blue"></i> LỊCH SỬ GIAO DỊCH (SỔ CÁI)
                     </div>
                     <div class="card-body p-0">
-                        <table class="table table-dark table-hover mb-0" id="ledger-table">
-                            <thead>
-                                <tr>
-                                    <th>Thời gian</th>
-                                    <th>Gửi đến</th>
-                                    <th>Số lượng (BTC)</th>
-                                    <th>Phí (BTC)</th>
-                                    <th>Trạng thái</th>
-                                    <th>TXID</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ledger-body">
-                                <tr><td colspan="6" class="text-center text-muted py-3">Chưa có giao dịch nào</td></tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-glass table-hover mb-0" id="ledger-table">
+                                <thead>
+                                    <tr>
+                                        <th>Thời gian</th>
+                                        <th>Gửi đến</th>
+                                        <th>Số lượng (BTC)</th>
+                                        <th>Phí (BTC)</th>
+                                        <th>Trạng thái</th>
+                                        <th>TXID</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ledger-body">
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Chưa có giao dịch nào</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- KẾT THÚC TAB NGƯỜI DÙNG -->
+
+    <!-- TAB: TRẠM THỢ ĐÀO -->
+    <div class="tab-pane fade" id="miner-view" role="tabpanel">
+        <div class="container fade-in mt-4">
+            <div class="row g-4">
+                <!-- THÔNG TIN VÍ THỢ ĐÀO -->
+                <div class="col-lg-4">
+                    <div class="glass-panel h-100 border-warning">
+                        <div class="glass-header text-warning">
+                            <i class="bi bi-wallet2"></i> VÍ THỢ ĐÀO
+                        </div>
+                        <div class="card-body p-4 text-center">
+                            <h2 class="mb-4 fw-bold text-success"><span id="miner-balance">0.00000000</span> <small class="text-muted fs-6">BTC</small></h2>
+                            <h6 class="text-muted mb-2 border-bottom border-secondary pb-2">Địa chỉ nhận thưởng (Native Segwit):</h6>
+                            <div class="addr-box text-success" id="miner-address" style="font-size:0.85rem">Đang tải...</div>
+                            <div class="mt-4 text-muted small text-start">
+                                <i class="bi bi-info-circle"></i> Tiền trong ví này đến từ phần thưởng tạo khối (Coinbase Reward) và phí giao dịch (Transaction Fees) mà người dùng trả.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUẢN LÝ MEMPOOL & ĐÓNG BLOCK -->
+                <div class="col-lg-8">
+                    <div class="glass-panel h-100 border-warning">
+                        <div class="glass-header text-neon-orange d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-server"></i> TRẠM KIỂM SOÁT MEMPOOL</span>
+                            <span class="badge text-bg-warning fs-6">Node: bitcoind -regtest</span>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row text-center mb-4 g-3">
+                                <div class="col-4">
+                                    <div class="p-3 border border-secondary rounded bg-dark bg-opacity-50 h-100">
+                                        <h3 class="text-info m-0" id="mempool-count">0</h3>
+                                        <small class="text-muted">Giao dịch chờ</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-3 border border-secondary rounded bg-dark bg-opacity-50 h-100">
+                                        <h3 class="text-neon-purple m-0"><span id="mempool-vsize">0</span></h3>
+                                        <small class="text-muted">vBytes</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-3 border border-secondary rounded bg-dark bg-opacity-50 h-100">
+                                        <h3 class="text-success m-0"><span id="mempool-fee">0.00000000</span></h3>
+                                        <small class="text-muted">Tổng phí thu</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-glass-warning w-100 py-4 fs-4 fw-bold mb-4" id="btn-mine-block" disabled>
+                                <i class="bi bi-pickaxe fs-3"></i> TẠO BLOCK MỚI & THU PHÍ
+                            </button>
+
+                            <h6 class="text-muted mb-3 border-bottom border-secondary pb-2">Danh sách Giao dịch trong Mempool:</h6>
+                            <div class="table-responsive" style="max-height: 250px;">
+                                <table class="table table-dark table-hover table-striped custom-table align-middle text-center">
+                                    <thead>
+                                        <tr>
+                                            <th>Thời gian</th>
+                                            <th>TXID</th>
+                                            <th>Dung lượng</th>
+                                            <th class="text-end">Phí (BTC)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mempool-body">
+                                        <tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-wind fs-3 d-block mb-2"></i> Mempool đang trống</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- KẾT THÚC TAB TRẠM THỢ ĐÀO -->
+</div>
+
+    <!-- TX DETAILS MODAL -->
+    <div class="modal fade" id="txModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content glass-panel border-info">
+                <div class="modal-header glass-header">
+                    <h5 class="modal-title text-neon-blue"><i class="bi bi-file-earmark-code"></i> Chi Tiết Giao Dịch</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-light">
+                    <div id="tx-modal-content">
+                        <!-- JS Injects -->
+                        <div class="text-center"><span class="spinner-border text-info"></span> Đang tải...</div>
                     </div>
                 </div>
             </div>
@@ -136,10 +296,10 @@
     </div>
 
     <!-- TOAST -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="liveToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-container position-fixed bottom-0 end-0 p-4">
+        <div id="liveToast" class="toast align-items-center border-0 glass-panel" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
-                <div class="toast-body" id="toast-body">Thông báo</div>
+                <div class="toast-body text-white fw-bold" id="toast-body" style="font-size: 1.1rem;">Thông báo</div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         </div>

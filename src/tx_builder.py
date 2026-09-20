@@ -148,7 +148,8 @@ def build_and_sign_tx(
     receiver_pub_script: Script,
     target_amount: Decimal,
     fee_rate: int = 10,
-    absolute_fee: Decimal = None
+    absolute_fee: Decimal = None,
+    locked_utxos: set = None
 ) -> tuple[Transaction, Decimal, list]:
     """
     API cốt lõi cho Web App: Xây dựng và Ký giao dịch từ A-Z. Hỗ trợ Mix UTXO.
@@ -161,16 +162,20 @@ def build_and_sign_tx(
     
     # 2. Gom UTXO từ TẤT CẢ các ví vào một rổ chung
     all_utxos = []
+    if locked_utxos is None: locked_utxos = set()
+    
     for addr_type, addr_string in sender_addresses.items():
         data = get_utxos_by_address(addr_string)
         unspents = data.get('unspents', [])
-        # Dán nhãn addr_type vào từng tờ tiền để lát nữa biết đường ký
+        # Lọc bỏ các UTXO đang bị khóa ở Mempool
         for u in unspents:
-            u["addr_type"] = addr_type
-            all_utxos.append(u)
-            
+            utxo_id = f"{u['txid']}:{u['vout']}"
+            if utxo_id not in locked_utxos:
+                u["addr_type"] = addr_type
+                all_utxos.append(u)
+                
     if not all_utxos:
-        raise ValueError("Ví không có đồng nào (cả 4 loại địa chỉ đều rỗng).")
+        raise ValueError("Ví không có đồng nào (hoặc tiền đang bị kẹt ở Mempool chờ xác nhận).")
         
     # 3. Tính phí
     if absolute_fee is not None:

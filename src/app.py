@@ -39,16 +39,21 @@ TRANSACTION_HISTORY = load_history()
 def get_total_balance(wif: str) -> dict:
     addresses = derive_all_address_types(wif)
     total = Decimal('0')
+    balances = {}
     
     for addr_type, addr in addresses.items():
+        addr_total = Decimal('0')
         data = get_utxos_by_address(addr)
         for u in data.get('unspents', []):
             utxo_id = f"{u['txid']}:{u['vout']}"
             if utxo_id not in LOCKED_UTXOS:
-                total += Decimal(str(u['amount']))
+                addr_total += Decimal(str(u['amount']))
+        balances[addr_type] = str(addr_total)
+        total += addr_total
                 
     return {
         "addresses": addresses,
+        "balances": balances,
         "total_balance": str(total)
     }
 
@@ -89,13 +94,14 @@ def generate_new_wallet():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/transfer', methods=['POST'])
-def transfer_coin():
+@app.route('/api/transaction/build', methods=['POST'])
+def build_transaction():
+    """BƯỚC 1: Xây dựng Giao dịch (Không phát sóng)"""
     data = request.json
     sender_wif = data.get('sender_wif')
     recipient_address = data.get('recipient_address')
     amount_str = data.get('amount', '0')
-    absolute_fee_str = data.get('absolute_fee') # Đổi sang nhận phí bằng BTC
+    absolute_fee_str = data.get('absolute_fee')
     
     try:
         if not sender_wif or not recipient_address:
@@ -104,34 +110,79 @@ def transfer_coin():
         target_amount = Decimal(amount_str)
         absolute_fee = Decimal(absolute_fee_str) if absolute_fee_str else None
         
+        # Hỗ trợ parse 4 loại địa chỉ
+        rec_script = None
         try:
-            rec_addr = P2wpkhAddress(recipient_address)
-            rec_script = rec_addr.to_script_pub_key()
-        except:
-            rec_addr = P2pkhAddress(recipient_address)
-            rec_script = rec_addr.to_script_pub_key()
+            rec_script = P2wpkhAddress(recipient_address).to_script_pub_key()
+        except: pass
+        if not rec_script:
+            try:
+                rec_script = P2pkhAddress(recipient_address).to_script_pub_key()
+            except: pass
+        if not rec_script:
+            try:
+                rec_script = P2shAddress(recipient_address).to_script_pub_key()
+            except: pass
+        if not rec_script:
+            try:
+                rec_script = P2trAddress(recipient_address).to_script_pub_key()
+            except: pass
+            
+        if not rec_script:
+            raise ValueError("Địa chỉ người nhận không hợp lệ hoặc không được hỗ trợ.")
         
-        # Build TX với tùy chỉnh phí thợ đào (BTC)
+        # Build TX (Bốc UTXO và Ký nhưng KHÔNG ném lên mạng)
         signed_tx, dynamic_fee, selected_utxos = build_and_sign_tx(
             sender_wif=sender_wif,
             receiver_pub_script=rec_script,
             target_amount=target_amount,
-            absolute_fee=absolute_fee
+            absolute_fee=absolute_fee,
+            locked_utxos=LOCKED_UTXOS
         )
         
+        hex_tx = signed_tx.serialize()
+        
+        # Gửi dữ liệu chi tiết cho UI để phân tích
+        return jsonify({
+            'success': True,
+            'fee': float(dynamic_fee),
+            'hex': hex_tx,
+            'selected_utxos': selected_utxos,
+            'target_amount': float(target_amount)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/transaction/broadcast', methods=['POST'])
+def broadcast_transaction():
+    """BƯỚC 2: Phát sóng Raw Hex lên Mempool"""
+    data = request.json
+    hex_tx = data.get('hex')
+    sender_wif = data.get('sender_wif')
+    recipient_address = data.get('recipient_address')
+    amount = data.get('amount')
+    fee = data.get('fee')
+    selected_utxos = data.get('selected_utxos', [])
+    
+    try:
+        if not hex_tx:
+            raise ValueError("Thiếu mã Raw Hex.")
+            
+        # Phát sóng lên mạng
+        txid = proxy.sendrawtransaction(hex_tx)
+        
+        # Thành công thì mới Khóa UTXO (tránh double-spend lúc đang suy nghĩ ở giao diện)
         for u in selected_utxos:
             LOCKED_UTXOS.add(f"{u['txid']}:{u['vout']}")
-            
-        hex_tx = signed_tx.serialize()
-        txid = proxy.sendrawtransaction(hex_tx)
         
         # Ghi vào Sổ cái
         TRANSACTION_HISTORY.append({
             "txid": txid,
             "sender_wif": sender_wif,
             "recipient": recipient_address,
-            "amount": str(target_amount),
-            "fee": str(dynamic_fee),
+            "amount": float(amount),
+            "fee": float(fee),
             "status": "Mempool",
             "time": time.strftime("%H:%M:%S")
         })
@@ -139,9 +190,7 @@ def transfer_coin():
         
         return jsonify({
             'success': True,
-            'txid': txid,
-            'fee': str(dynamic_fee),
-            'message': "Phát sóng thành công!"
+            'txid': txid
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
@@ -175,10 +224,79 @@ def mine_block():
             'message': "Đóng Block Thành Công",
             'block_hash': best_block_hash,
             'height': block_info['height'],
-            'reward': str(miner_reward)
+            'reward': str(miner_reward),
+            'tx_count': len(block_info['tx']) - 1
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/transaction/<txid>', methods=['GET'])
+def get_transaction_details(txid):
+    """API Lấy chi tiết giao dịch từ Node Bitcoin"""
+    try:
+        # True để decode raw hex thành JSON chi tiết
+        tx_info = proxy.getrawtransaction(txid, True)
+        return jsonify({
+            'success': True,
+            'data': tx_info
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 404
+@app.route('/api/miner/mempool', methods=['GET'])
+def get_mempool():
+    """Lấy danh sách các giao dịch đang chờ trong Mempool"""
+    try:
+        raw_mempool = proxy.getrawmempool(True)
+        txs = []
+        total_fee = Decimal('0')
+        total_vsize = 0
+        
+        for txid, details in raw_mempool.items():
+            fee = details.get('fee', 0)
+            vsize = details.get('vsize', 0)
+            
+            total_fee += Decimal(str(fee))
+            total_vsize += vsize
+            
+            txs.append({
+                'txid': txid,
+                'fee': fee,
+                'vsize': vsize,
+                'time': details.get('time', 0)
+            })
+            
+        # Sắp xếp theo phí giảm dần (ưu tiên đóng block)
+        txs.sort(key=lambda x: x['fee'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'txs': txs,
+            'total_fee': float(total_fee),
+            'total_vsize': total_vsize,
+            'tx_count': len(txs)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/miner/info', methods=['GET'])
+def get_miner_info():
+    """Lấy thông tin ví của Thợ đào"""
+    try:
+        if not MINER_WIF:
+            return jsonify({'success': False, 'error': 'Thiếu MINER_WIF trong .env'}), 400
+            
+        info = get_total_balance(MINER_WIF)
+        
+        miner_priv = PrivateKey(MINER_WIF)
+        # Thông thường thợ đào nhận qua Native Segwit
+        miner_addr = miner_priv.get_public_key().get_segwit_address().to_string()
+        
+        return jsonify({
+            'success': True,
+            'address': miner_addr,
+            'balance': info['total_balance']
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -22,55 +22,44 @@ flowchart TD
     B --> C{Xác thực WIF?}
     C -- Lỗi --> B
     C -- Thành công --> D[Tải thông tin Ví]
+- Nhập số tiền gửi, địa chỉ nhận và phí thợ đào.
+- Nhấn "Khởi tạo Giao dịch".
+- Chờ hiển thị Bảng Phân Tích (thấy được UTXO đã chọn, Thuật toán Ký, và Raw Hex).
+- Xác nhận bằng cách nhấn "Phát Sóng Lên Mempool".
+  
+### Biểu đồ Activity (Activity Diagram)
+
+```mermaid
+graph TD
+    A[Bắt đầu] --> B[Chọn Ví đăng nhập]
+    B --> C[Giao diện chính (Glassmorphism) hiển thị]
+    C --> D[Nhập Địa chỉ nhận, Số lượng, Phí thợ đào]
+    D --> E[Bấm Khởi Tạo Giao Dịch]
     
-    D --> E[Hiển thị Dashboard: Số dư & Địa chỉ]
-    E --> F[Người dùng nhập lệnh Chuyển tiền]
+    E --> F[API: /api/transaction/build]
+    F --> G[Coin Selection & Tạo Chữ ký]
+    G --> H[Sinh Raw Transaction Hex]
+    H --> I[UI: Hiển thị Bảng Phân Tích (Wizard Bước 2)]
     
-    F --> G[Nhập: Địa chỉ nhận, Số lượng BTC, Phí thợ đào BTC]
-    G --> H{Kiểm tra tính hợp lệ?}
-    H -- Không hợp lệ --> F
+    I --> J{Người dùng duyệt?}
+    J -- Hủy bỏ --> C
+    J -- Đồng ý Phát sóng --> K[API: /api/transaction/broadcast]
     
-    H -- Hợp lệ --> I[Tạo Transaction Gốc qua tx_builder]
-    I --> J[Gom UTXO chưa bị khóa]
-    J --> K[Ký Giao Dịch bằng WIF]
-    K --> L[Broadcast lên Node Bitcoin]
-    
-    L --> M[Khóa các UTXO vừa tiêu vào Mempool Lock]
-    M --> N[Ghi vào Sổ cái trạng thái: Đang chờ]
-    
-    N --> O{Thợ đào đóng Block?}
-    O -- Chưa --> N
-    O -- Rồi --> P[Mở khóa UTXO & Cập nhật Sổ cái: Hoàn thành]
-    
-    P --> Q([Kết thúc])
+    K --> L[Ném Hex vào Mempool]
+    L --> M[Khóa UTXO chống Double Spend]
+    M --> N[Lưu Lịch sử vào history.json]
+    N --> O[Cập nhật UI thông báo thành công]
+    O --> P[Kết thúc]
 ```
 
-## 3. Sequence Diagram (Sơ đồ tuần tự)
+---
+
+## 3. Biểu Đồ Tuần Tự (Sequence Diagram) - Core Flow
+
+Chi tiết luồng Giao dịch (Tách biệt Build và Broadcast):
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor U as Người Dùng
-    participant W as Web App (Frontend)
-    participant B as Backend (Flask API)
-    participant C as Core Logic (tx_builder)
-    participant N as Bitcoin Node (Regtest)
-    actor M as Thợ Đào (Miner)
-
-    U->>W: Nhập Private Key (WIF)
-    W->>B: GET /api/wallet/info?wif=...
-    B->>C: Lấy danh sách Địa chỉ & UTXO
-    C->>N: listunspent (qua RPC)
-    N-->>C: Trả về UTXOs
-    C-->>B: Tổng số dư & Các địa chỉ
-    B-->>W: Dữ liệu Dashboard JSON
-    W-->>U: Hiển thị Giao diện Ví
-
-    U->>W: Nhập lệnh Chuyển tiền (Địa chỉ, Số BTC, Phí)
-    W->>B: POST /api/transfer (Data)
-    B->>C: build_and_sign_tx()
-    C->>C: Tính toán thuật toán Coin Selection
-    C->>C: Ký giao dịch (ECDSA / Schnorr)
     C->>N: sendrawtransaction (qua RPC)
     N-->>C: txid (Giao dịch nằm ở Mempool)
     C-->>B: txid & danh sách UTXO đã dùng
